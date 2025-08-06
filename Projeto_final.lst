@@ -1,0 +1,300 @@
+CCS PCH C Compiler, Version 5.007, 61971               19-jul-25 13:49
+
+               Filename:   C:\Users\PC Gamer Console\Documents\Projeto mecanismos\Projeto_final.lst
+
+               ROM used:   348 bytes (1%)
+                           Largest free fragment is 32420
+               RAM used:   5 (0%) at main() level
+                           9 (0%) worst case
+               Stack used: 0 locations
+               Stack size: 31
+
+*
+0000:  GOTO   002A
+.................... #define On_Off pin_b0 
+.................... #define SentidoMotores pin_b1 
+....................  
+.................... #define LedVermelho pin_d7 
+.................... #define LedVerde pin_d1 
+.................... #define LedAmarelo pin_d0 
+....................  
+.................... #define motorgo pin_d3 
+.................... #define motorback pin_d2 
+....................  
+.................... #include <18F4550.h> 
+.................... //////// Standard Header file for the PIC18F4550 device //////////////// 
+.................... #device PIC18F4550 
+....................  
+.................... #list 
+....................  
+.................... #fuses HS, CPUDIV1, PLL5, USBDIV 
+.................... #use delay(clock = 20MHz) 
+0004:  CLRF   FEA
+0006:  MOVLW  09
+0008:  MOVWF  FE9
+000A:  MOVF   FEF,W
+000C:  BZ    0028
+000E:  MOVLW  06
+0010:  MOVWF  01
+0012:  CLRF   00
+0014:  DECFSZ 00,F
+0016:  BRA    0014
+0018:  DECFSZ 01,F
+001A:  BRA    0012
+001C:  MOVLW  7B
+001E:  MOVWF  00
+0020:  DECFSZ 00,F
+0022:  BRA    0020
+0024:  DECFSZ FEF,F
+0026:  BRA    000E
+0028:  RETURN 0
+....................  
+....................  
+.................... void main(){ 
+002A:  CLRF   FF8
+002C:  BCF    FD0.7
+002E:  MOVF   FC1,W
+0030:  ANDLW  C0
+0032:  IORLW  0F
+0034:  MOVWF  FC1
+0036:  MOVLW  07
+0038:  MOVWF  FB4
+....................    port_b_pullups(true);   // Liga os pull ups 
+003A:  BCF    FF1.7
+....................    output_d(0b00000000);   // Desliga todas as portas D 
+003C:  CLRF   F95
+003E:  CLRF   F8C
+....................    SET_TRIS_B(0xFF);       // Seta o grupo B como entrada. 
+0040:  MOVLW  FF
+0042:  MOVWF  F93
+....................    SET_TRIS_D(0x00);       // Seta o grupo D como saída. 
+0044:  MOVLW  00
+0046:  MOVWF  F95
+....................     
+....................    boolean estado = 0; 
+....................    int sentido = 0; 
+....................     
+....................    ///////////////////////////// 
+....................    int valor = 90; 
+0048:  BCF    05.0
+004A:  CLRF   06
+004C:  MOVLW  5A
+004E:  MOVWF  07
+....................     
+....................    setup_ccp1(CCP_PWM); //habilita o uso do PWM 
+0050:  BCF    F94.2
+0052:  BCF    F8B.2
+0054:  MOVLW  0C
+0056:  MOVWF  FBD
+0058:  CLRF   FB7
+005A:  CLRF   FB6
+....................    setup_timer_2(T2_DIV_BY_4, 249, 1); //timer do pwm 
+005C:  MOVLW  00
+005E:  IORLW  05
+0060:  MOVWF  FCA
+0062:  MOVLW  F9
+0064:  MOVWF  FCB
+....................    ///////////////////////////// 
+....................     
+.................... while(true){ 
+....................    ////////////////////// 
+....................    set_pwm1_duty(valor); //aqui é mandado a velocidade do pwm para o pwm1. 
+0066:  MOVFF  07,FBE
+....................     
+.................... // ajuste de velocidade do pwm ----------------------------------------------// 
+.................... // if que adiciona mais ou menos 10% ao valor total do pwm 
+....................    
+....................       if (valor < 50 ){valor = 100;} 
+006A:  MOVF   07,W
+006C:  SUBLW  31
+006E:  BNC   0074
+0070:  MOVLW  64
+0072:  MOVWF  07
+....................       if((input(pin_b2)) == 0){ 
+0074:  BSF    F93.2
+0076:  BTFSC  F81.2
+0078:  BRA    008C
+....................       valor = valor + 25; 
+007A:  MOVLW  19
+007C:  ADDWF  07,F
+....................       delay_ms(200); 
+007E:  MOVLW  C8
+0080:  MOVWF  09
+0082:  RCALL  0004
+....................        
+....................          if (valor > 150){ 
+0084:  MOVF   07,W
+0086:  SUBLW  96
+0088:  BC    008C
+....................             valor = 0; 
+008A:  CLRF   07
+....................          } 
+....................       } 
+....................    ///////////////////// 
+....................     
+....................    if (input(On_Off) == 0){ //Liga os motres se apertar b0 
+008C:  BSF    F93.0
+008E:  BTFSC  F81.0
+0090:  BRA    00A2
+....................       estado = !estado; //inverte o valor do estado 
+0092:  BTG    05.0
+....................       delay_ms(300); 
+0094:  MOVLW  02
+0096:  MOVWF  08
+0098:  MOVLW  96
+009A:  MOVWF  09
+009C:  RCALL  0004
+009E:  DECFSZ 08,F
+00A0:  BRA    0098
+....................    } 
+....................     
+....................    if ((input(SentidoMotores)) == 0){ //Muda como os motores se comporta cada 
+00A2:  BSF    F93.1
+00A4:  BTFSC  F81.1
+00A6:  BRA    00DE
+....................       sentido++;                      //vez que aperta o botão b1 
+00A8:  INCF   06,F
+....................        
+....................       // Para os motores 
+....................       output_bit(motorgo, 0); 
+00AA:  BCF    F8C.3
+00AC:  BCF    F95.3
+....................       output_bit(motorback, 0); 
+00AE:  BCF    F8C.2
+00B0:  BCF    F95.2
+....................       output_bit(LedVermelho, 1); //liga o led vermelho 
+00B2:  BSF    F8C.7
+00B4:  BCF    F95.7
+....................       delay_ms(3000); 
+00B6:  MOVLW  0C
+00B8:  MOVWF  08
+00BA:  MOVLW  FA
+00BC:  MOVWF  09
+00BE:  RCALL  0004
+00C0:  DECFSZ 08,F
+00C2:  BRA    00BA
+....................       output_bit(LedVermelho, 0); //desliga o led vermelho 
+00C4:  BCF    F8C.7
+00C6:  BCF    F95.7
+....................        
+....................       // Comando para reiniciar o contador do sentido. 
+....................       if(sentido == 2){sentido = 0;} 
+00C8:  MOVF   06,W
+00CA:  SUBLW  02
+00CC:  BNZ   00D0
+00CE:  CLRF   06
+....................       delay_ms(500); 
+00D0:  MOVLW  02
+00D2:  MOVWF  08
+00D4:  MOVLW  FA
+00D6:  MOVWF  09
+00D8:  RCALL  0004
+00DA:  DECFSZ 08,F
+00DC:  BRA    00D4
+....................    } 
+....................     
+....................    if (estado == 1){ //Se estado for igual a 1, os motores ligam. 
+00DE:  BTFSS  05.0
+00E0:  BRA    0102
+....................       if (sentido == 0){ //Indo para frente 
+00E2:  MOVF   06,F
+00E4:  BNZ   00F2
+....................          output_bit(motorgo, 1); 
+00E6:  BSF    F8C.3
+00E8:  BCF    F95.3
+....................          output_bit(motorback, 0); 
+00EA:  BCF    F8C.2
+00EC:  BCF    F95.2
+....................           
+....................          output_bit(LedAmarelo, 0); //Desliga pino amarelo 
+00EE:  BCF    F8C.0
+00F0:  BCF    F95.0
+....................       } 
+....................        
+....................       if (sentido == 1){ //Indo para trás 
+00F2:  DECFSZ 06,W
+00F4:  BRA    0102
+....................          output_bit(motorgo, 0); 
+00F6:  BCF    F8C.3
+00F8:  BCF    F95.3
+....................          output_bit(motorback, 1); 
+00FA:  BSF    F8C.2
+00FC:  BCF    F95.2
+....................        
+....................          output_bit(LedAmarelo, 1); //Liga pino amarelo 
+00FE:  BSF    F8C.0
+0100:  BCF    F95.0
+....................       } 
+....................    } 
+....................     
+....................    // Leds de estados.... 
+....................    if(estado == 0) { // Para indicar que está desligado 
+0102:  BTFSC  05.0
+0104:  BRA    0134
+....................       output_bit(LedVermelho,!estado); 
+0106:  BTFSS  05.0
+0108:  BRA    010E
+010A:  BCF    F8C.7
+010C:  BRA    0110
+010E:  BSF    F8C.7
+0110:  BCF    F95.7
+....................       output_bit(LedVerde,estado);    
+0112:  BTFSC  05.0
+0114:  BRA    011A
+0116:  BCF    F8C.1
+0118:  BRA    011C
+011A:  BSF    F8C.1
+011C:  BCF    F95.1
+....................  
+....................       output_bit(motorgo, 0); 
+011E:  BCF    F8C.3
+0120:  BCF    F95.3
+....................       output_bit(motorback, 0); 
+0122:  BCF    F8C.2
+0124:  BCF    F95.2
+....................       delay_ms(500); 
+0126:  MOVLW  02
+0128:  MOVWF  08
+012A:  MOVLW  FA
+012C:  MOVWF  09
+012E:  RCALL  0004
+0130:  DECFSZ 08,F
+0132:  BRA    012A
+....................    } 
+....................    if(estado == 1) { // Para indicar que está ligado 
+0134:  BTFSS  05.0
+0136:  BRA    0150
+....................       output_bit(LedVerde,estado); 
+0138:  BTFSC  05.0
+013A:  BRA    0140
+013C:  BCF    F8C.1
+013E:  BRA    0142
+0140:  BSF    F8C.1
+0142:  BCF    F95.1
+....................       output_bit(LedVermelho,!estado); 
+0144:  BTFSS  05.0
+0146:  BRA    014C
+0148:  BCF    F8C.7
+014A:  BRA    014E
+014C:  BSF    F8C.7
+014E:  BCF    F95.7
+....................    } 
+....................    output_bit(pin_d0,0); 
+0150:  BCF    F8C.0
+0152:  BCF    F95.0
+....................    output_bit(pin_d6,0); 
+0154:  BCF    F8C.6
+0156:  BCF    F95.6
+0158:  BRA    0066
+.................... } //Fim while() 
+.................... } //Fim main() 
+015A:  SLEEP 
+
+Configuration Fuses:
+   Word  1: CC24   PLL5 CPUDIV1 USBDIV HS FCMEN IESO
+   Word  2: 1E3E   PUT BROWNOUT BORV21 VREGEN NOWDT WDT32768
+   Word  3: 8700   CCP2C1 PBADEN LPT1OSC MCLR
+   Word  4: 00A1   STVREN NOLVP ICSP2 NOXINST NODEBUG
+   Word  5: C00F   NOPROTECT NOCPB NOCPD
+   Word  6: E00F   NOWRT NOWRTC NOWRTB NOWRTD
+   Word  7: 400F   NOEBTR NOEBTRB
